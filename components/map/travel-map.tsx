@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from "react-leaf
 import "leaflet/dist/leaflet.css"
 import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
-import { Plus, X } from "lucide-react"
+import { Plus, X, Edit } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { CreatePinDialog } from "./create-pin-dialog"
 
@@ -27,6 +27,7 @@ function MapEvents({ onMapClick, isAddingPin }: { onMapClick: (e: any) => void; 
 export default function TravelMap({ pins }: { pins: any[] }) {
   const [isAddingPin, setIsAddingPin] = useState(false)
   const [tempPin, setTempPin] = useState<{ lat: number; lng: number } | null>(null)
+  const [selectedPin, setSelectedPin] = useState<any>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [L, setL] = useState<any>(null)
 
@@ -68,7 +69,14 @@ export default function TravelMap({ pins }: { pins: any[] }) {
 
   const handleMapClick = (e: any) => {
     setTempPin(e.latlng)
+    setSelectedPin(null)
     setIsAddingPin(false)
+    setIsDialogOpen(true)
+  }
+
+  const handleEditPin = (pin: any) => {
+    setSelectedPin(pin)
+    setTempPin(null)
     setIsDialogOpen(true)
   }
 
@@ -85,7 +93,7 @@ export default function TravelMap({ pins }: { pins: any[] }) {
         {pins.map((pin) => (
           <Marker key={pin.id} position={[pin.latitude, pin.longitude]} icon={createPolaroidIcon()}>
             <Popup className="polaroid-popup">
-              <div className="text-center">
+              <div className="text-center relative group">
                 <h3 className="font-bold">{pin.location_name || "Visited Location"}</h3>
                 <p className="text-xs text-muted-foreground">{new Date(pin.visit_date).toLocaleDateString()}</p>
                 {pin.pin_photos?.[0] && (
@@ -97,6 +105,17 @@ export default function TravelMap({ pins }: { pins: any[] }) {
                     />
                   </div>
                 )}
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleEditPin(pin)
+                  }}
+                >
+                  <Edit className="h-3 w-3" />
+                </Button>
               </div>
             </Popup>
           </Marker>
@@ -113,17 +132,19 @@ export default function TravelMap({ pins }: { pins: any[] }) {
         )}
       </MapContainer>
 
-      {tempPin && (
-        <CreatePinDialog
-          open={isDialogOpen}
-          onOpenChange={(open) => {
-            setIsDialogOpen(open)
-            if (!open) setTempPin(null)
-          }}
-          latitude={tempPin.lat}
-          longitude={tempPin.lng}
-        />
-      )}
+      <CreatePinDialog
+        open={isDialogOpen}
+        onOpenChange={(open) => {
+          setIsDialogOpen(open)
+          if (!open) {
+            setTempPin(null)
+            setSelectedPin(null)
+          }
+        }}
+        latitude={selectedPin ? selectedPin.latitude : tempPin?.lat || 0}
+        longitude={selectedPin ? selectedPin.longitude : tempPin?.lng || 0}
+        initialData={selectedPin}
+      />
 
       {/* Map Controls */}
       <div className="absolute bottom-8 right-8 z-[1000] flex flex-col gap-4">
