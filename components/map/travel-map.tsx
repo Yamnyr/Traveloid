@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 import { Plus, X } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { CreatePinDialog } from "./create-pin-dialog"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
 
 // Fix for default leaflet markers
 const iconUrl = "https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png"
@@ -30,7 +29,6 @@ export default function TravelMap({ pins }: { pins: any[] }) {
   const [tempPin, setTempPin] = useState<{ lat: number; lng: number } | null>(null)
   const [selectedPin, setSelectedPin] = useState<any>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [viewingPhoto, setViewingPhoto] = useState<{ url: string; pin: any } | null>(null)
   const [L, setL] = useState<any>(null)
 
   const handleMapClick = (e: any) => {
@@ -72,45 +70,34 @@ export default function TravelMap({ pins }: { pins: any[] }) {
       const photoUrl = hasPhoto ? pin.pin_photos[0].photo_url : null
 
       const htmlContent = photoUrl
-        ? `<div class="polaroid-marker group cursor-pointer" style="width: 140px; background: white; padding: 10px; box-shadow: 0 8px 16px rgba(0,0,0,0.25); transform: rotate(-2deg); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);">
-            <img src="${photoUrl}" alt="${pin.location_name || "Photo"}" style="width: 100%; height: 120px; object-fit: cover; display: block; border-radius: 2px;" />
-            <div style="padding: 8px 4px; text-align: center; font-size: 14px; font-family: 'Caveat', cursive; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600;">${pin.location_name || "Visited"}</div>
-            <div class="edit-button" style="position: absolute; top: -10px; right: -10px; background: white; border-radius: 50%; width: 32px; height: 32px; display: none; align-items: center; justify-content: center; box-shadow: 0 4px 8px rgba(0,0,0,0.3); cursor: pointer; border: 2px solid #f59e0b;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
-            </div>
-            <div class="view-icon" style="position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.6); border-radius: 50%; width: 28px; height: 28px; display: none; align-items: center; justify-content: center; cursor: pointer;">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+        ? `<div class="polaroid-marker group cursor-pointer" style="width: 120px; background: white; padding: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.4); transform: rotate(-3deg); transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+            <img src="${photoUrl}" alt="${pin.location_name || "Photo"}" style="width: 100%; height: 100px; object-fit: cover; display: block;" />
+            <div style="padding: 6px 4px; text-align: center; font-size: 14px; font-family: 'Caveat', cursive; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${pin.location_name || "Visited"}</div>
+            <div class="edit-button" style="position: absolute; top: -10px; right: -10px; background: white; border-radius: 50%; width: 28px; height: 28px; display: none; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2); cursor: pointer; z-index: 10;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
             </div>
           </div>
           <style>
-            .polaroid-marker:hover { 
-              transform: rotate(0deg) scale(1.15) translateY(-8px); 
-              z-index: 1000 !important; 
-              box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-            }
+            .polaroid-marker:hover { transform: rotate(0deg) scale(1.5) !important; z-index: 9999 !important; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.2) !important; }
             .polaroid-marker:hover .edit-button { display: flex !important; }
-            .polaroid-marker:hover .view-icon { display: flex !important; }
+            .leaflet-marker-pane { z-index: 600; } /* Ensure markers are above other map elements */
           </style>`
-        : `<div class="polaroid-marker" style="width: 100px; background: white; padding: 8px; box-shadow: 0 6px 12px rgba(0,0,0,0.25); transform: rotate(-2deg); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer;">
-            <div style="width: 100%; height: 84px; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); display: flex; align-items: center; justify-content: center; border-radius: 2px;">
+        : `<div class="polaroid-marker" style="width: 80px; background: white; padding: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.4); transform: rotate(-3deg); transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer;">
+            <div style="width: 100%; height: 80px; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); display: flex; align-items: center; justify-content: center;">
               <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
             </div>
-            <div style="padding: 6px 2px; text-align: center; font-size: 12px; font-family: 'Caveat', cursive; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600;">${pin.location_name || "No photo"}</div>
+            <div style="padding: 6px 4px; text-align: center; font-size: 12px; font-family: 'Caveat', cursive; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${pin.location_name || "No photo"}</div>
           </div>
           <style>
-            .polaroid-marker:hover { 
-              transform: rotate(0deg) scale(1.12) translateY(-6px); 
-              z-index: 1000 !important; 
-              box-shadow: 0 16px 32px rgba(0,0,0,0.35);
-            }
+            .polaroid-marker:hover { transform: rotate(0deg) scale(1.5) !important; z-index: 9999 !important; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.2) !important; }
           </style>`
 
       return L.divIcon({
         className: "custom-polaroid-marker",
         html: htmlContent,
-        iconSize: [140, 160],
-        iconAnchor: [70, 80],
-        popupAnchor: [0, -80],
+        iconSize: [120, 150],
+        iconAnchor: [60, 75],
+        popupAnchor: [0, -75],
       })
     }
   }, [L])
@@ -118,23 +105,12 @@ export default function TravelMap({ pins }: { pins: any[] }) {
   useEffect(() => {
     const handleMarkerEdit = (e: any) => {
       if (e.target.closest(".edit-button")) {
-        e.stopPropagation()
         const markerId = e.target.closest(".leaflet-marker-icon")?.getAttribute("data-pin-id")
         if (markerId) {
           const pin = pins.find((p) => p.id === markerId)
           if (pin) {
             handleEditPin(pin)
           }
-        }
-      } else if (e.target.closest(".view-icon")) {
-        e.stopPropagation()
-        const markerElement = e.target.closest(".leaflet-marker-icon")
-        const img = markerElement?.querySelector("img")
-        if (img) {
-          const photoUrl = img.src
-          const pinId = markerElement?.getAttribute("data-pin-id")
-          const pin = pins.find((p) => p.id === pinId)
-          setViewingPhoto({ url: photoUrl, pin })
         }
       }
     }
@@ -192,36 +168,6 @@ export default function TravelMap({ pins }: { pins: any[] }) {
         longitude={selectedPin ? selectedPin.longitude : tempPin?.lng || 0}
         initialData={selectedPin}
       />
-
-      <Dialog open={!!viewingPhoto} onOpenChange={() => setViewingPhoto(null)}>
-        <DialogContent className="max-w-4xl p-0 bg-transparent border-none">
-          <div className="relative bg-white p-8 rounded-lg shadow-2xl">
-            <div className="bg-white p-4 shadow-xl" style={{ transform: "rotate(-1deg)" }}>
-              {viewingPhoto && (
-                <>
-                  <img
-                    src={viewingPhoto.url || "/placeholder.svg"}
-                    alt={viewingPhoto.pin?.location_name || "Photo"}
-                    className="w-full max-h-[70vh] object-contain"
-                  />
-                  <div className="mt-4 text-center font-['Caveat'] text-2xl text-gray-700">
-                    {viewingPhoto.pin?.location_name || "Travel Memory"}
-                  </div>
-                  {viewingPhoto.pin?.visit_date && (
-                    <div className="mt-1 text-center font-['Caveat'] text-lg text-gray-500">
-                      {new Date(viewingPhoto.pin.visit_date).toLocaleDateString("fr-FR", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Map Controls */}
       <div className="absolute bottom-8 right-8 z-[1000] flex flex-col gap-4">
