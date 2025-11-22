@@ -56,14 +56,23 @@ export default function TravelMap({ pins: initialPins, currentUser }: { pins: an
 
   // Update local pins when prop changes
   useEffect(() => {
+    console.log("[v0] Pins updated:", initialPins.length)
     setPins(initialPins)
+    setVisiblePins(initialPins.slice(0, 50))
   }, [initialPins])
 
   const handleBoundsChange = useCallback(
     (bounds: any) => {
       if (!bounds) return
       // Simple culling: only show pins within current view
-      const visible = pins.filter((pin) => bounds.contains([pin.latitude, pin.longitude]))
+      const visible = pins.filter((pin) => {
+        const lat = Number(pin.latitude)
+        const lng = Number(pin.longitude)
+        if (isNaN(lat) || isNaN(lng)) return false
+        return bounds.contains([lat, lng])
+      })
+
+      console.log("[v0] Bounds change. Total pins:", pins.length, "Visible in bounds:", visible.length)
 
       // Sort to prioritize own pins and liked pins, and limit to avoid clutter
       const sorted = visible.sort((a, b) => {
@@ -236,7 +245,7 @@ export default function TravelMap({ pins: initialPins, currentUser }: { pins: an
         {visiblePins.map((pin) => (
           <Marker
             key={pin.id}
-            position={[pin.latitude, pin.longitude]}
+            position={[Number(pin.latitude), Number(pin.longitude)]} // Ensure numeric coordinates
             icon={createPolaroidIcon(pin)}
             eventHandlers={{
               click: (e) => {
