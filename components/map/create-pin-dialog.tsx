@@ -38,6 +38,7 @@ interface PinData {
   latitude: number
   longitude: number
   pin_photos: PinPhoto[]
+  author_name?: string // Added author name
 }
 
 interface CreatePinDialogProps {
@@ -46,9 +47,17 @@ interface CreatePinDialogProps {
   latitude: number
   longitude: number
   initialData?: PinData | null
+  readOnly?: boolean // Added readOnly prop
 }
 
-export function CreatePinDialog({ open, onOpenChange, latitude, longitude, initialData }: CreatePinDialogProps) {
+export function CreatePinDialog({
+  open,
+  onOpenChange,
+  latitude,
+  longitude,
+  initialData,
+  readOnly = false,
+}: CreatePinDialogProps) {
   const [locationName, setLocationName] = useState("")
   const [visitDate, setVisitDate] = useState<Date | undefined>(new Date())
   const [notes, setNotes] = useState("")
@@ -78,6 +87,7 @@ export function CreatePinDialog({ open, onOpenChange, latitude, longitude, initi
   }, [open, initialData])
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (readOnly) return
     if (e.target.files && e.target.files.length > 0) {
       const newFiles = Array.from(e.target.files)
       setSelectedFiles((prev) => [...prev, ...newFiles])
@@ -88,6 +98,7 @@ export function CreatePinDialog({ open, onOpenChange, latitude, longitude, initi
   }
 
   const removeFile = (index: number) => {
+    if (readOnly) return
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index))
     setPreviews((prev) => {
       URL.revokeObjectURL(prev[index])
@@ -96,6 +107,7 @@ export function CreatePinDialog({ open, onOpenChange, latitude, longitude, initi
   }
 
   const removeExistingPhoto = async (photoId: string, photoUrl: string) => {
+    if (readOnly) return
     if (!confirm("Are you sure you want to delete this photo?")) return
 
     setIsLoading(true)
@@ -120,7 +132,7 @@ export function CreatePinDialog({ open, onOpenChange, latitude, longitude, initi
   }
 
   const handleDeletePin = async () => {
-    if (!initialData) return
+    if (readOnly || !initialData) return
     if (!confirm("Are you sure you want to delete this memory? This cannot be undone.")) return
 
     setIsLoading(true)
@@ -150,6 +162,8 @@ export function CreatePinDialog({ open, onOpenChange, latitude, longitude, initi
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (readOnly) return
+
     setIsLoading(true)
     const supabase = createClient()
 
@@ -229,11 +243,19 @@ export function CreatePinDialog({ open, onOpenChange, latitude, longitude, initi
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{initialData ? "Edit Memory" : "Add New Memory"}</DialogTitle>
+          <DialogTitle>
+            {readOnly
+              ? `Memory by ${initialData?.author_name || "Traveler"}`
+              : initialData
+                ? "Edit Memory"
+                : "Add New Memory"}
+          </DialogTitle>
           <DialogDescription>
-            {initialData
-              ? "Update your travel memory"
-              : `Create a pin at ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`}
+            {readOnly
+              ? `Viewing travel memory at ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`
+              : initialData
+                ? "Update your travel memory"
+                : `Create a pin at ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`}
           </DialogDescription>
         </DialogHeader>
 
@@ -246,25 +268,34 @@ export function CreatePinDialog({ open, onOpenChange, latitude, longitude, initi
               value={locationName}
               onChange={(e) => setLocationName(e.target.value)}
               required
+              readOnly={readOnly}
+              className={readOnly ? "bg-muted" : ""}
             />
           </div>
 
           <div className="space-y-2">
             <Label>Visit Date</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className={cn("w-full justify-start text-left font-normal", !visitDate && "text-muted-foreground")}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {visitDate ? format(visitDate, "PPP") : <span>Pick a date</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar mode="single" selected={visitDate} onSelect={setVisitDate} initialFocus />
-              </PopoverContent>
-            </Popover>
+            {readOnly ? (
+              <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted px-3 py-2 text-sm">
+                <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
+                {visitDate ? format(visitDate, "PPP") : "No date"}
+              </div>
+            ) : (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn("w-full justify-start text-left font-normal", !visitDate && "text-muted-foreground")}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {visitDate ? format(visitDate, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar mode="single" selected={visitDate} onSelect={setVisitDate} initialFocus />
+                </PopoverContent>
+              </Popover>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -274,7 +305,8 @@ export function CreatePinDialog({ open, onOpenChange, latitude, longitude, initi
               placeholder="What made this moment special?"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="min-h-[100px]"
+              className={cn("min-h-[100px]", readOnly && "bg-muted")}
+              readOnly={readOnly}
             />
           </div>
 
@@ -288,40 +320,45 @@ export function CreatePinDialog({ open, onOpenChange, latitude, longitude, initi
                     alt="Existing memory"
                     className="w-full h-full object-cover rounded-md border"
                   />
-                  <button
-                    type="button"
-                    onClick={() => removeExistingPhoto(photo.id, photo.photo_url)}
-                    className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
+                  {!readOnly && (
+                    <button
+                      type="button"
+                      onClick={() => removeExistingPhoto(photo.id, photo.photo_url)}
+                      className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  )}
                 </div>
               ))}
 
-              {previews.map((preview, index) => (
-                <div key={`new-${index}`} className="relative aspect-square group">
-                  <img
-                    src={preview || "/placeholder.svg"}
-                    alt={`Preview ${index + 1}`}
-                    className="w-full h-full object-cover rounded-md border"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeFile(index)}
-                    className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
+              {!readOnly &&
+                previews.map((preview, index) => (
+                  <div key={`new-${index}`} className="relative aspect-square group">
+                    <img
+                      src={preview || "/placeholder.svg"}
+                      alt={`Preview ${index + 1}`}
+                      className="w-full h-full object-cover rounded-md border"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeFile(index)}
+                      className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
 
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className="aspect-square border-2 border-dashed rounded-md flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors"
-              >
-                <Upload className="h-6 w-6 text-muted-foreground mb-2" />
-                <span className="text-xs text-muted-foreground">Add Photo</span>
-              </div>
+              {!readOnly && (
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="aspect-square border-2 border-dashed rounded-md flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors"
+                >
+                  <Upload className="h-6 w-6 text-muted-foreground mb-2" />
+                  <span className="text-xs text-muted-foreground">Add Photo</span>
+                </div>
+              )}
             </div>
             <input
               type="file"
@@ -334,7 +371,7 @@ export function CreatePinDialog({ open, onOpenChange, latitude, longitude, initi
           </div>
 
           <DialogFooter className="flex justify-between sm:justify-between">
-            {initialData ? (
+            {!readOnly && initialData ? (
               <Button type="button" variant="destructive" onClick={handleDeletePin} disabled={isLoading}>
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete
@@ -345,12 +382,14 @@ export function CreatePinDialog({ open, onOpenChange, latitude, longitude, initi
 
             <div className="flex gap-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
+                {readOnly ? "Close" : "Cancel"}
               </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {initialData ? "Save Changes" : "Create Pin"}
-              </Button>
+              {!readOnly && (
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {initialData ? "Save Changes" : "Create Pin"}
+                </Button>
+              )}
             </div>
           </DialogFooter>
         </form>

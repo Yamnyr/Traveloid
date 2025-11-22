@@ -4,7 +4,7 @@ import dynamic from "next/dynamic"
 import { useMemo } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 
-export default function MapWrapper({ pins }: { pins: any[] }) {
+export default function MapWrapper({ pins, currentUser }: { pins: any[]; currentUser: any }) {
   const Map = useMemo(
     () =>
       dynamic(() => import("@/components/map/travel-map"), {
@@ -14,5 +14,5 @@ export default function MapWrapper({ pins }: { pins: any[] }) {
     [],
   )
 
-  return <Map pins={pins} />
+  return <Map pins={pins} currentUser={currentUser} />
 }

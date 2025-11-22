@@ -16,14 +16,24 @@ export default async function MapPage() {
     redirect("/auth/login")
   }
 
-  // Fetch user's pins
   const { data: pins } = await supabase
     .from("travel_pins")
     .select(`
       *,
-      pin_photos (*)
+      pin_photos (*),
+      profiles (display_name),
+      pin_likes (user_id)
     `)
-    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+
+  // Process pins to add social metadata
+  const processedPins = pins?.map((pin) => ({
+    ...pin,
+    author_name: pin.profiles?.display_name || "Unknown Traveler",
+    is_mine: pin.user_id === user.id,
+    likes_count: pin.pin_likes?.length || 0,
+    is_liked: pin.pin_likes?.some((like: any) => like.user_id === user.id) || false,
+  }))
 
   // Fetch user profile
   const { data: profile } = await supabase.from("profiles").select("display_name").eq("id", user.id).single()
@@ -59,7 +69,7 @@ export default async function MapPage() {
       </header>
 
       <main className="flex-1 relative">
-        <MapWrapper pins={pins || []} />
+        <MapWrapper pins={processedPins || []} currentUser={user} />
 
         <div className="absolute top-4 left-4 z-[1000] sm:hidden">
           <Button variant="secondary" size="icon" className="shadow-md" asChild>
