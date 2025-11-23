@@ -16,7 +16,7 @@ export default async function MapPage() {
     redirect("/auth/login")
   }
 
-  const { data: pins } = await supabase
+  const { data: pins, error } = await supabase
     .from("travel_pins")
     .select(`
       *,
@@ -26,6 +26,12 @@ export default async function MapPage() {
     `)
     .order("created_at", { ascending: false })
 
+  console.log("[v0] Fetched pins from database:", pins?.length || 0, "pins")
+  console.log("[v0] Query error:", error)
+  if (pins && pins.length > 0) {
+    console.log("[v0] Sample pin:", pins[0])
+  }
+
   // Process pins to add social metadata
   const processedPins = pins?.map((pin) => ({
     ...pin,
@@ -34,6 +40,8 @@ export default async function MapPage() {
     likes_count: pin.pin_likes?.length || 0,
     is_liked: pin.pin_likes?.some((like: any) => like.user_id === user.id) || false,
   }))
+
+  console.log("[v0] Processed pins:", processedPins?.length || 0)
 
   // Fetch user profile
   const { data: profile } = await supabase.from("profiles").select("display_name").eq("id", user.id).single()
