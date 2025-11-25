@@ -36,6 +36,7 @@ export default async function MapPage() {
   const processedPins = pins?.map((pin) => ({
     ...pin,
     author_name: pin.profiles?.display_name || "Unknown Traveler",
+    author_id: pin.user_id,
     is_mine: pin.user_id === user.id,
     likes_count: pin.pin_likes?.length || 0,
     is_liked: pin.pin_likes?.some((like: any) => like.user_id === user.id) || false,
@@ -51,7 +52,7 @@ export default async function MapPage() {
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-10">
         <div className="container flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-2 font-bold text-xl text-primary">
-            <span>TravelMap</span>
+            <span>Traveloid</span>
           </div>
 
           <div className="flex items-center gap-4">
