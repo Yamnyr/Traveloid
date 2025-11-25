@@ -87,7 +87,7 @@ export default function TravelMap({ pins: initialPins, currentUser, initialLat, 
   useEffect(() => {
     console.log("[v0] Pins updated:", initialPins.length)
     setPins(initialPins)
-    setVisiblePins(initialPins.slice(0, 20))
+    setVisiblePins(initialPins.slice(0, 10))
   }, [initialPins])
 
   const handleBoundsChange = useCallback(
@@ -111,7 +111,7 @@ export default function TravelMap({ pins: initialPins, currentUser, initialLat, 
       })
 
       // Show up to 20 pins to maintain performance and "intelligent" density
-      setVisiblePins(sorted.slice(0, 20))
+      setVisiblePins(sorted.slice(0, 10))
     },
     [pins],
   )
