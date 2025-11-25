@@ -49,43 +49,46 @@ export default async function MapPage() {
 
   return (
       <div className="flex min-h-screen flex-col">
-        <header className="border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/40 z-10">
-          <div className="container flex h-16 items-center justify-between px-4">
 
-            {/* Logo / Brand */}
-            <Link href="/"
-                  className="flex items-center gap-2 font-semibold text-xl text-primary hover:opacity-80 transition">
-              <span>Traveloid</span>
-            </Link>
+        {/* Bulle Profil (en haut à droite) */}
+        {/* Bulle Profil (en haut à droite) */}
+        <Link
+            href={`/profile/${user.id}`}
+            className="
+    absolute top-4 right-4 z-[1000]
+    flex items-center justify-center
+    w-14 h-14
+    rounded-full
+    bg-white/80 backdrop-blur
+    shadow-lg
+    border border-white/40
+    hover:scale-105 active:scale-95
+    transition
+  "
+        >
+          <User className="h-7 w-7 text-primary" />
+        </Link>
 
-            <div className="flex items-center gap-4">
+        {/* Bulle Logout (en dessous du profil, espacée de 16px) */}
+        <form action="/auth/sign-out" method="post">
+          <button
+              className="
+      absolute top-[80px] right-4 z-[1000]   /* 80px = 56px + un petit espace */
+      flex items-center justify-center
+      w-14 h-14
+      rounded-full
+      bg-white/80 backdrop-blur
+      shadow-lg
+      border border-white/40
+      hover:scale-105 active:scale-95
+      transition
+    "
+          >
+            <LogOut className="h-6 w-6 text-primary" />
+          </button>
+        </form>
 
-              {/* Profil clicable complet */}
-              <Link
-                  href={`/profile/${user.id}`}
-                  className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-accent hover:text-accent-foreground transition"
-              >
-                <User className="h-5 w-5 opacity-80"/>
-                <span className="text-sm font-medium">
-          {profile?.display_name || user.email}
-        </span>
-              </Link>
 
-              {/* Sign out */}
-              <form action="/auth/sign-out" method="post">
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    className="gap-2 rounded-xl hover:bg-accent hover:text-accent-foreground transition"
-                >
-                  <LogOut className="h-4 w-4"/>
-                  Sign Out
-                </Button>
-              </form>
-
-            </div>
-          </div>
-        </header>
 
 
         <main className="flex-1 relative">

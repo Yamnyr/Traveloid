@@ -71,31 +71,62 @@ export default async function ProfilePage({ params }: { params: Promise<{ userId
 
   return (
     <div className="flex min-h-screen flex-col bg-stone-50">
-      <header className="border-b bg-white/80 backdrop-blur sticky top-0 z-10">
-        <div className="container flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" asChild>
-              <Link href="/map">
-                <ArrowLeft className="h-5 w-5" />
-              </Link>
-            </Button>
-            <span className="font-bold text-xl text-primary">Profile</span>
-          </div>
+      {/* Bulle Retour (gauche) */}
+      <Link
+          href="/map"
+          className="
+    absolute top-4 left-4 z-[1000]
+    flex items-center justify-center
+    w-14 h-14
+    rounded-full
+    bg-white/80 backdrop-blur
+    shadow-lg
+    border border-white/40
+    hover:scale-105 active:scale-95
+    transition
+  "
+      >
+        <ArrowLeft className="h-6 w-6 text-primary" />
+      </Link>
 
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground hidden sm:flex">
-              <User className="h-4 w-4" />
-              <span>{currentUserProfile?.display_name || currentUser.email}</span>
-            </div>
-            <form action="/auth/sign-out" method="post">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline">Sign Out</span>
-              </Button>
-            </form>
-          </div>
+      {/* Bulle Profil (droite top) */}
+      <div
+          className="
+    absolute top-4 right-4 z-[1000]
+    hidden sm:flex items-center justify-center
+    w-14 h-14
+    rounded-full
+    bg-white/80 backdrop-blur
+    shadow-lg
+    border border-white/40
+    hover:scale-105 active:scale-95
+    transition
+  "
+      >
+        <div className="flex flex-col items-center gap-1 text-center">
+          <User className="h-6 w-6 text-primary" />
         </div>
-      </header>
+      </div>
+
+      {/* Bulle Logout (droite sous le profil) */}
+      <form action="/auth/sign-out" method="post">
+        <button
+            className="
+      absolute top-[80px] right-4 z-[1000]
+      flex items-center justify-center
+      w-14 h-14
+      rounded-full
+      bg-white/80 backdrop-blur
+      shadow-lg
+      border border-white/40
+      hover:scale-105 active:scale-95
+      transition
+    "
+        >
+          <LogOut className="h-6 w-6 text-primary" />
+        </button>
+      </form>
+
 
       <main className="flex-1 container mx-auto py-8 px-4">
         <ProfileContent
