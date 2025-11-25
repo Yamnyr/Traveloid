@@ -48,46 +48,57 @@ export default async function MapPage() {
   const { data: profile } = await supabase.from("profiles").select("display_name").eq("id", user.id).single()
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-10">
-        <div className="container flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-2 font-bold text-xl text-primary">
-            <span>Traveloid</span>
-          </div>
+      <div className="flex min-h-screen flex-col">
+        <header className="border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/40 z-10">
+          <div className="container flex h-16 items-center justify-between px-4">
 
-          <div className="flex items-center gap-4">
-            <Button variant="outline" size="sm" className="gap-2 hidden sm:flex bg-transparent" asChild>
-              <Link href="/map/gallery">
-                <ImageIcon className="h-4 w-4" />
-                Gallery
-              </Link>
-            </Button>
-
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <User className="h-4 w-4" />
-              <span>{profile?.display_name || user.email}</span>
-            </div>
-            <form action="/auth/sign-out" method="post">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <LogOut className="h-4 w-4" />
-                Sign Out
-              </Button>
-            </form>
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1 relative">
-        <MapWrapper pins={processedPins || []} currentUser={user} />
-
-        <div className="absolute top-4 left-4 z-[1000] sm:hidden">
-          <Button variant="secondary" size="icon" className="shadow-md" asChild>
-            <Link href="/map/gallery">
-              <ImageIcon className="h-5 w-5" />
+            {/* Logo / Brand */}
+            <Link href="/"
+                  className="flex items-center gap-2 font-semibold text-xl text-primary hover:opacity-80 transition">
+              <span>Traveloid</span>
             </Link>
-          </Button>
-        </div>
-      </main>
-    </div>
+
+            <div className="flex items-center gap-4">
+
+              {/* Profil clicable complet */}
+              <Link
+                  href={`/profile/${user.id}`}
+                  className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-accent hover:text-accent-foreground transition"
+              >
+                <User className="h-5 w-5 opacity-80"/>
+                <span className="text-sm font-medium">
+          {profile?.display_name || user.email}
+        </span>
+              </Link>
+
+              {/* Sign out */}
+              <form action="/auth/sign-out" method="post">
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-2 rounded-xl hover:bg-accent hover:text-accent-foreground transition"
+                >
+                  <LogOut className="h-4 w-4"/>
+                  Sign Out
+                </Button>
+              </form>
+
+            </div>
+          </div>
+        </header>
+
+
+        <main className="flex-1 relative">
+          <MapWrapper pins={processedPins || []} currentUser={user}/>
+
+          {/*<div className="absolute top-4 left-4 z-[1000] sm:hidden">*/}
+          {/*  <Button variant="secondary" size="icon" className="shadow-md" asChild>*/}
+          {/*    <Link href={`/profile/${user.id}`}>*/}
+          {/*      <ImageIcon className="h-5 w-5"/>*/}
+          {/*    </Link>*/}
+          {/*  </Button>*/}
+          {/*</div>*/}
+        </main>
+      </div>
   )
 }
