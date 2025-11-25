@@ -228,7 +228,18 @@ export default function TravelMap({ pins: initialPins, currentUser, initialLat, 
       const htmlContent = photoUrl
         ? `<div class="polaroid-marker group cursor-pointer" data-pin-id="${pin.id}" style="width: 120px; background: white; padding: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.4); transform: rotate(-3deg); transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; touch-action: manipulation;">
             ${authorBadge}
-            <img src="${photoUrl}" alt="${pin.location_name || "Photo"}" style="width: 100%; height: 100px; object-fit: cover; display: block; pointer-events: none;" />
+            <img 
+  src="${photoUrl}" 
+  alt="${pin.location_name || 'Photo'}"
+  style="
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+    image-rendering: auto;
+    pointer-events: none;
+  "
+>
+
             <div style="padding: 6px 4px; text-align: center; font-size: 14px; font-family: 'Caveat', cursive; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none;">${pin.location_name || "Visited"}</div>
             ${editButton}
             ${likeButton}
