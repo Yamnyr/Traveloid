@@ -1,137 +1,196 @@
-import { createClient } from "@/lib/supabase/server"
+import { getSessionUser } from "@/lib/session"
 import { redirect, notFound } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { ArrowLeft, LogOut, User, MapPin, Calendar } from "lucide-react"
+import { ArrowLeft, LogOut, User } from "lucide-react"
 import Link from "next/link"
 import { ProfileContent } from "@/components/profile/profile-content"
-import { format } from "date-fns"
+import { sql, getOrCreateProfile } from "@/lib/db"
 
 export default async function ProfilePage({ params }: { params: Promise<{ userId: string }> }) {
-  const supabase = await createClient()
+  const session = await getSessionUser()
 
-  const {
-    data: { user: currentUser },
-  } = await supabase.auth.getUser()
-
-  if (!currentUser) {
+  if (!session) {
     redirect("/auth/login")
+  }
+
+  const currentUser = {
+    id: session.userId,
+    email: session.email,
+    user_metadata: {
+      display_name: session.displayName || session.email.split("@")[0]
+    }
   }
 
   const { userId } = await params
 
-  // Fetch profile user data
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("id, display_name, created_at")
-    .eq("id", userId)
-    .single()
-
-  if (profileError || !profile) {
-    notFound()
+  // 1. If viewing own profile, lazily ensure it exists in Neon
+  if (userId === currentUser.id) {
+    const profileName = currentUser.user_metadata?.display_name || currentUser.email?.split("@")[0] || "Traveler"
+    await getOrCreateProfile(currentUser.id, currentUser.email, profileName)
   }
 
-  // Fetch user's pins with photos
-  const { data: pins } = await supabase
-    .from("travel_pins")
-    .select(`
-      *,
-      pin_photos (*),
-      pin_likes (user_id)
-    `)
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
+  // 2. Fetch target profile data from Neon
+  const profiles = await sql`
+    SELECT id, display_name, created_at 
+    FROM public.profiles 
+    WHERE id = ${userId}
+  `
 
-  // Check if current user is following this profile
-  const { data: followData } = await supabase
-    .from("follows")
-    .select("id")
-    .eq("follower_id", currentUser.id)
-    .eq("following_id", userId)
-    .single()
+  if (profiles.length === 0) {
+    notFound()
+  }
+  const profile = profiles[0]
 
-  const isFollowing = !!followData
+  // 3. Fetch user's pins with associated photos and likes from Neon
+  let pins: any[] = []
+  try {
+    pins = await sql`
+      SELECT 
+        tp.id,
+        tp.user_id,
+        tp.latitude,
+        tp.longitude,
+        tp.location_name,
+        tp.visit_date,
+        tp.notes,
+        tp.created_at,
+        COALESCE(
+          (SELECT json_agg(json_build_object('id', pp.id, 'photo_url', pp.photo_url, 'caption', pp.caption)) 
+           FROM public.pin_photos pp 
+           WHERE pp.pin_id = tp.id), 
+          '[]'::json
+        ) AS pin_photos,
+        COALESCE(
+          (SELECT json_agg(json_build_object('user_id', pl.user_id)) 
+           FROM public.pin_likes pl 
+           WHERE pl.pin_id = tp.id), 
+          '[]'::json
+        ) AS pin_likes
+      FROM public.travel_pins tp
+      WHERE tp.user_id = ${userId}
+      ORDER BY tp.created_at DESC
+    `
+  } catch (error) {
+    console.error("Error fetching profile pins from Neon:", error)
+  }
 
-  // Get follower and following counts
-  const { count: followersCount } = await supabase
-    .from("follows")
-    .select("*", { count: "exact", head: true })
-    .eq("following_id", userId)
+  // 4. Fetch pins liked by this user
+  let likedPins: any[] = []
+  try {
+    likedPins = await sql`
+      SELECT 
+        tp.id,
+        tp.user_id,
+        tp.latitude,
+        tp.longitude,
+        tp.location_name,
+        tp.visit_date,
+        tp.notes,
+        tp.created_at,
+        p.display_name AS author_name,
+        COALESCE(
+          (SELECT json_agg(json_build_object('id', pp.id, 'photo_url', pp.photo_url, 'caption', pp.caption)) 
+           FROM public.pin_photos pp 
+           WHERE pp.pin_id = tp.id), 
+          '[]'::json
+        ) AS pin_photos,
+        COALESCE(
+          (SELECT json_agg(json_build_object('user_id', pl.user_id)) 
+           FROM public.pin_likes pl 
+           WHERE pl.pin_id = tp.id), 
+          '[]'::json
+        ) AS pin_likes
+      FROM public.pin_likes pl
+      JOIN public.travel_pins tp ON pl.pin_id = tp.id
+      LEFT JOIN public.profiles p ON p.id = tp.user_id
+      WHERE pl.user_id = ${userId}
+      ORDER BY pl.created_at DESC
+    `
+  } catch (error) {
+    console.error("Error fetching liked pins from Neon:", error)
+  }
 
-  const { count: followingCount } = await supabase
-    .from("follows")
-    .select("*", { count: "exact", head: true })
-    .eq("follower_id", userId)
+  // Process pins to add social stats
+  const processedLikedPins = likedPins?.map((pin) => ({
+    ...pin,
+    author_name: pin.author_name || "Unknown Traveler",
+    author_id: pin.user_id,
+    is_mine: pin.user_id === currentUser.id,
+    likes_count: pin.pin_likes?.length || 0,
+    is_liked: pin.pin_likes?.some((like: any) => like.user_id === currentUser.id) || false,
+  }))
 
-  // Fetch current user profile for header
-  const { data: currentUserProfile } = await supabase
-    .from("profiles")
-    .select("display_name")
-    .eq("id", currentUser.id)
-    .single()
+  // 5. Check if current user is following this profile in Neon
+  let isFollowing = false
+  try {
+    const follows = await sql`
+      SELECT id FROM public.follows 
+      WHERE follower_id = ${currentUser.id} AND following_id = ${userId}
+    `
+    isFollowing = follows.length > 0
+  } catch (error) {
+    console.error("Error checking follow status in Neon:", error)
+  }
+
+  // 6. Get follower and following counts from Neon
+  let followersCount = 0
+  let followingCount = 0
+  try {
+    const followers = await sql`
+      SELECT COUNT(*)::int AS count FROM public.follows WHERE following_id = ${userId}
+    `
+    const following = await sql`
+      SELECT COUNT(*)::int AS count FROM public.follows WHERE follower_id = ${userId}
+    `
+    followersCount = followers[0]?.count || 0
+    followingCount = following[0]?.count || 0
+  } catch (error) {
+    console.error("Error fetching follow counts from Neon:", error)
+  }
 
   return (
-    <div className="flex min-h-screen flex-col bg-stone-50">
-      {/* Bulle Retour (gauche) */}
+    <div className="flex min-h-screen flex-col bg-background/50 selection:bg-primary/20">
+      {/* Back Button (left) */}
       <Link
-          href="/map"
-          className="
-    absolute top-4 left-4 z-[1000]
-    flex items-center justify-center
-    w-14 h-14
-    rounded-full
-    bg-white/80 backdrop-blur
-    shadow-lg
-    border border-white/40
-    hover:scale-105 active:scale-95
-    transition
-  "
+        href="/map"
+        className="
+          absolute top-6 left-6 z-[1000]
+          flex items-center justify-center
+          w-12 h-12
+          rounded-xl
+          bg-card hover:bg-secondary/40
+          shadow-md
+          border border-border/80
+          hover:scale-105 active:scale-95
+          transition-all
+        "
       >
-        <ArrowLeft className="h-6 w-6 text-primary" />
+        <ArrowLeft className="h-5 w-5 text-primary" />
       </Link>
 
-      {/* Bulle Profil (droite top) */}
-      <div
-          className="
-    absolute top-4 right-4 z-[1000]
-    hidden sm:flex items-center justify-center
-    w-14 h-14
-    rounded-full
-    bg-white/80 backdrop-blur
-    shadow-lg
-    border border-white/40
-    hover:scale-105 active:scale-95
-    transition
-  "
-      >
-        <div className="flex flex-col items-center gap-1 text-center">
-          <User className="h-6 w-6 text-primary" />
-        </div>
-      </div>
-
-      {/* Bulle Logout (droite sous le profil) */}
+      {/* Logout button (right) */}
       <form action="/auth/sign-out" method="post">
         <button
-            className="
-      absolute top-[80px] right-4 z-[1000]
-      flex items-center justify-center
-      w-14 h-14
-      rounded-full
-      bg-white/80 backdrop-blur
-      shadow-lg
-      border border-white/40
-      hover:scale-105 active:scale-95
-      transition
-    "
+          className="
+            absolute top-6 right-6 z-[1000]
+            flex items-center justify-center
+            w-12 h-12
+            rounded-xl
+            bg-card hover:bg-secondary/40
+            shadow-md
+            border border-border/80
+            hover:scale-105 active:scale-95
+            transition-all
+          "
         >
-          <LogOut className="h-6 w-6 text-primary" />
+          <LogOut className="h-5 w-5 text-primary" />
         </button>
       </form>
 
-
-      <main className="flex-1 container mx-auto py-8 px-4">
+      <main className="flex-1 container mx-auto py-16 px-4 max-w-5xl">
         <ProfileContent
           profile={profile}
           pins={pins || []}
+          likedPins={processedLikedPins || []}
           isOwnProfile={userId === currentUser.id}
           isFollowing={isFollowing}
           followersCount={followersCount || 0}
@@ -141,4 +200,3 @@ export default async function ProfilePage({ params }: { params: Promise<{ userId
     </div>
   )
 }
-

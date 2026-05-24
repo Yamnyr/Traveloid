@@ -1,8 +1,7 @@
 "use client"
 
-import type React from "react"
+import React, { useState, useRef, useEffect } from "react"
 
-import { useState, useRef, useEffect } from "react"
 import {
   Dialog,
   DialogContent,
@@ -11,6 +10,13 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+} from "@/components/ui/drawer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -20,9 +26,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns"
 import { CalendarIcon, Upload, X, Loader2, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
-import { upload } from "@vercel/blob/client"
 
 interface PinPhoto {
   id: string
@@ -38,7 +42,7 @@ interface PinData {
   latitude: number
   longitude: number
   pin_photos: PinPhoto[]
-  author_name?: string // Added author name
+  author_name?: string
 }
 
 interface CreatePinDialogProps {
@@ -47,7 +51,7 @@ interface CreatePinDialogProps {
   latitude: number
   longitude: number
   initialData?: PinData | null
-  readOnly?: boolean // Added readOnly prop
+  readOnly?: boolean
 }
 
 export function CreatePinDialog({
@@ -67,6 +71,17 @@ export function CreatePinDialog({
   const [existingPhotos, setExistingPhotos] = useState<PinPhoto[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Track viewport size to dynamically toggle drawer vs dialog
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    handleResize()
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [])
 
   useEffect(() => {
     if (open) {
@@ -111,16 +126,15 @@ export function CreatePinDialog({
     if (!confirm("Are you sure you want to delete this photo?")) return
 
     setIsLoading(true)
-    const supabase = createClient()
 
     try {
-      await fetch(`/api/photos/delete?url=${encodeURIComponent(photoUrl)}`, {
+      const response = await fetch(`/api/photos?photoId=${photoId}&photoUrl=${encodeURIComponent(photoUrl)}`, {
         method: "DELETE",
       })
 
-      const { error } = await supabase.from("pin_photos").delete().eq("id", photoId)
-
-      if (error) throw error
+      if (!response.ok) {
+        throw new Error("Failed to delete photo")
+      }
 
       setExistingPhotos((prev) => prev.filter((p) => p.id !== photoId))
       router.refresh()
@@ -136,20 +150,15 @@ export function CreatePinDialog({
     if (!confirm("Are you sure you want to delete this memory? This cannot be undone.")) return
 
     setIsLoading(true)
-    const supabase = createClient()
 
     try {
-      await Promise.all(
-        existingPhotos.map((photo) =>
-          fetch(`/api/photos/delete?url=${encodeURIComponent(photo.photo_url)}`, {
-            method: "DELETE",
-          }),
-        ),
-      )
+      const response = await fetch(`/api/pins?pinId=${initialData.id}`, {
+        method: "DELETE",
+      })
 
-      const { error } = await supabase.from("travel_pins").delete().eq("id", initialData.id)
-
-      if (error) throw error
+      if (!response.ok) {
+        throw new Error("Failed to delete pin")
+      }
 
       onOpenChange(false)
       router.refresh()
@@ -165,58 +174,76 @@ export function CreatePinDialog({
     if (readOnly) return
 
     setIsLoading(true)
-    const supabase = createClient()
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) throw new Error("Not authenticated")
-
       let pinId = initialData?.id
 
       if (initialData) {
-        const { error } = await supabase
-          .from("travel_pins")
-          .update({
-            location_name: locationName,
-            visit_date: visitDate ? format(visitDate, "yyyy-MM-dd") : null,
+        const response = await fetch("/api/pins", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pinId: initialData.id,
+            locationName,
+            visitDate: visitDate ? format(visitDate, "yyyy-MM-dd") : null,
             notes,
-          })
-          .eq("id", initialData.id)
+          }),
+        })
 
-        if (error) throw error
+        if (!response.ok) {
+          throw new Error("Failed to update pin")
+        }
       } else {
-        const { data: pin, error: pinError } = await supabase
-          .from("travel_pins")
-          .insert({
-            user_id: user.id,
+        const response = await fetch("/api/pins", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
             latitude,
             longitude,
-            location_name: locationName,
-            visit_date: visitDate ? format(visitDate, "yyyy-MM-dd") : null,
+            locationName,
+            visitDate: visitDate ? format(visitDate, "yyyy-MM-dd") : null,
             notes,
-          })
-          .select()
-          .single()
+          }),
+        })
 
-        if (pinError) throw pinError
+        if (!response.ok) {
+          throw new Error("Failed to create pin")
+        }
+
+        const pin = await response.json()
         pinId = pin.id
       }
 
       if (selectedFiles.length > 0 && pinId) {
         const uploadPromises = selectedFiles.map(async (file) => {
-          const newBlob = await upload(file.name, file, {
-            access: "public",
-            handleUploadUrl: "/api/upload",
+          const formData = new FormData()
+          formData.append("file", file)
+
+          const uploadResponse = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
           })
 
-          return supabase.from("pin_photos").insert({
-            pin_id: pinId,
-            user_id: user.id,
-            photo_url: newBlob.url,
-            caption: locationName,
+          if (!uploadResponse.ok) {
+            throw new Error(`Failed to upload photo: ${file.name}`)
+          }
+
+          const uploadResult = await uploadResponse.json()
+          const photoUrl = uploadResult.url
+
+          const photoResponse = await fetch("/api/photos", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              pinId,
+              photoUrl,
+              caption: locationName,
+            }),
           })
+
+          if (!photoResponse.ok) {
+            throw new Error("Failed to save photo record")
+          }
         })
 
         await Promise.all(uploadPromises)
@@ -239,160 +266,191 @@ export function CreatePinDialog({
     }
   }
 
+  const renderFormContent = () => (
+    <form onSubmit={handleSubmit} className="space-y-5 py-2">
+      <div className="space-y-1.5">
+        <Label htmlFor="location" className="text-sm font-semibold">Location Name</Label>
+        <Input
+          id="location"
+          placeholder="e.g., Eiffel Tower, Paris"
+          value={locationName}
+          onChange={(e) => setLocationName(e.target.value)}
+          required
+          readOnly={readOnly}
+          className={cn("rounded-xl border-border bg-card shadow-sm focus-visible:ring-primary", readOnly && "bg-muted text-muted-foreground")}
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-sm font-semibold">Visit Date</Label>
+        {readOnly ? (
+          <div className="flex h-10 w-full items-center rounded-xl border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
+            <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground/75" />
+            {visitDate ? format(visitDate, "PPP") : "No date"}
+          </div>
+        ) : (
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn("w-full justify-start text-left font-normal rounded-xl border-border shadow-sm", !visitDate && "text-muted-foreground")}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground/75" />
+                {visitDate ? format(visitDate, "PPP") : <span>Pick a date</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 rounded-xl shadow-lg border border-border bg-popover" align="start">
+              <Calendar mode="single" selected={visitDate} onSelect={setVisitDate} initialFocus />
+            </PopoverContent>
+          </Popover>
+        )}
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="notes" className="text-sm font-semibold">Notes & Memories</Label>
+        <Textarea
+          id="notes"
+          placeholder="What made this moment special?"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          className={cn("min-h-[100px] rounded-xl border-border bg-card shadow-sm resize-none focus-visible:ring-primary", readOnly && "bg-muted text-muted-foreground")}
+          readOnly={readOnly}
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-sm font-semibold">Photos</Label>
+        <div className="grid grid-cols-3 gap-3">
+          {existingPhotos.map((photo) => (
+            <div key={photo.id} className="relative aspect-square group rounded-xl overflow-hidden shadow-sm border border-border/80">
+              <img
+                src={photo.photo_url || "/placeholder.svg"}
+                alt="Existing memory"
+                className="w-full h-full object-cover"
+              />
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={() => removeExistingPhoto(photo.id, photo.photo_url)}
+                  className="absolute top-1.5 right-1.5 bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-full p-1.5 shadow-md hover:scale-105 active:scale-95 transition-all duration-200"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+          ))}
+
+          {!readOnly &&
+            previews.map((preview, index) => (
+              <div key={`new-${index}`} className="relative aspect-square group rounded-xl overflow-hidden shadow-sm border border-border/80">
+                <img
+                  src={preview || "/placeholder.svg"}
+                  alt={`Preview ${index + 1}`}
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeFile(index)}
+                  className="absolute top-1.5 right-1.5 bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-full p-1.5 shadow-md hover:scale-105 active:scale-95 transition-all duration-200"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+
+          {!readOnly && (
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="aspect-square border-2 border-dashed border-muted-foreground/30 hover:border-primary hover:bg-primary/5 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group/upload shadow-sm"
+            >
+              <Upload className="h-5 w-5 text-muted-foreground group-hover/upload:text-primary group-hover/upload:scale-110 transition-all duration-300 mb-1" />
+              <span className="text-[11px] text-muted-foreground group-hover/upload:text-primary font-medium transition-colors">Add Photo</span>
+            </div>
+          )}
+        </div>
+        <input
+          type="file"
+          ref={fileInputRef}
+          className="hidden"
+          accept="image/*"
+          multiple
+          onChange={handleFileSelect}
+        />
+      </div>
+
+      <div className="flex justify-between items-center pt-4 border-t border-border/40 gap-3">
+        {!readOnly && initialData ? (
+          <Button type="button" variant="destructive" onClick={handleDeletePin} disabled={isLoading} className="rounded-xl px-4 py-2 hover:bg-destructive/90 transition-all">
+            <Trash2 className="mr-1.5 h-4 w-4" />
+            Delete
+          </Button>
+        ) : (
+          <div></div>
+        )}
+
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="rounded-xl px-4 py-2 transition-all">
+            {readOnly ? "Close" : "Cancel"}
+          </Button>
+          {!readOnly && (
+            <Button type="submit" disabled={isLoading} className="rounded-xl px-4 py-2 bg-primary text-primary-foreground hover:scale-[1.02] active:scale-98 transition-all duration-200 glow-primary">
+              {isLoading && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+              {initialData ? "Save Changes" : "Create Pin"}
+            </Button>
+          )}
+        </div>
+      </div>
+    </form>
+  )
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerContent className="max-h-[92vh]">
+          <div className="overflow-y-auto px-6 pb-8 pt-2">
+            <DrawerHeader className="px-0 pt-0 text-left">
+              <DrawerTitle className="text-xl font-bold tracking-tight">
+                {readOnly
+                  ? `Memory by ${initialData?.author_name || "Traveler"}`
+                  : initialData
+                    ? "Edit Memory"
+                    : "Add New Memory"}
+              </DrawerTitle>
+              <DrawerDescription className="text-xs text-muted-foreground/80 mt-1">
+                {readOnly
+                  ? `Viewing travel memory at ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`
+                  : initialData
+                    ? "Update your travel memory details below."
+                    : `Create a pin at coordinates ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`}
+              </DrawerDescription>
+            </DrawerHeader>
+            {renderFormContent()}
+          </div>
+        </DrawerContent>
+      </Drawer>
+    )
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
+      <DialogContent className="sm:max-w-[480px] max-h-[85vh] overflow-y-auto rounded-2xl border border-border p-6 shadow-2xl bg-card">
+        <DialogHeader className="space-y-1">
+          <DialogTitle className="text-xl font-bold tracking-tight">
             {readOnly
               ? `Memory by ${initialData?.author_name || "Traveler"}`
               : initialData
                 ? "Edit Memory"
                 : "Add New Memory"}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-xs text-muted-foreground/80">
             {readOnly
               ? `Viewing travel memory at ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`
               : initialData
-                ? "Update your travel memory"
-                : `Create a pin at ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`}
+                ? "Update your travel memory details below."
+                : `Create a pin at coordinates ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`}
           </DialogDescription>
         </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-6 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="location">Location Name</Label>
-            <Input
-              id="location"
-              placeholder="e.g., Eiffel Tower, Paris"
-              value={locationName}
-              onChange={(e) => setLocationName(e.target.value)}
-              required
-              readOnly={readOnly}
-              className={readOnly ? "bg-muted" : ""}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Visit Date</Label>
-            {readOnly ? (
-              <div className="flex h-10 w-full items-center rounded-md border border-input bg-muted px-3 py-2 text-sm">
-                <CalendarIcon className="mr-2 h-4 w-4 text-muted-foreground" />
-                {visitDate ? format(visitDate, "PPP") : "No date"}
-              </div>
-            ) : (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className={cn("w-full justify-start text-left font-normal", !visitDate && "text-muted-foreground")}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {visitDate ? format(visitDate, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar mode="single" selected={visitDate} onSelect={setVisitDate} initialFocus />
-                </PopoverContent>
-              </Popover>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes & Memories</Label>
-            <Textarea
-              id="notes"
-              placeholder="What made this moment special?"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className={cn("min-h-[100px]", readOnly && "bg-muted")}
-              readOnly={readOnly}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Photos</Label>
-            <div className="grid grid-cols-3 gap-4">
-              {existingPhotos.map((photo) => (
-                <div key={photo.id} className="relative aspect-square group">
-                  <img
-                    src={photo.photo_url || "/placeholder.svg"}
-                    alt="Existing memory"
-                    className="w-full h-full object-cover rounded-md border"
-                  />
-                  {!readOnly && (
-                    <button
-                      type="button"
-                      onClick={() => removeExistingPhoto(photo.id, photo.photo_url)}
-                      className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  )}
-                </div>
-              ))}
-
-              {!readOnly &&
-                previews.map((preview, index) => (
-                  <div key={`new-${index}`} className="relative aspect-square group">
-                    <img
-                      src={preview || "/placeholder.svg"}
-                      alt={`Preview ${index + 1}`}
-                      className="w-full h-full object-cover rounded-md border"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeFile(index)}
-                      className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                ))}
-
-              {!readOnly && (
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  className="aspect-square border-2 border-dashed rounded-md flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors"
-                >
-                  <Upload className="h-6 w-6 text-muted-foreground mb-2" />
-                  <span className="text-xs text-muted-foreground">Add Photo</span>
-                </div>
-              )}
-            </div>
-            <input
-              type="file"
-              ref={fileInputRef}
-              className="hidden"
-              accept="image/*"
-              multiple
-              onChange={handleFileSelect}
-            />
-          </div>
-
-          <DialogFooter className="flex justify-between sm:justify-between">
-            {!readOnly && initialData ? (
-              <Button type="button" variant="destructive" onClick={handleDeletePin} disabled={isLoading}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
-              </Button>
-            ) : (
-              <div></div>
-            )}
-
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                {readOnly ? "Close" : "Cancel"}
-              </Button>
-              {!readOnly && (
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {initialData ? "Save Changes" : "Create Pin"}
-                </Button>
-              )}
-            </div>
-          </DialogFooter>
-        </form>
+        {renderFormContent()}
       </DialogContent>
     </Dialog>
   )

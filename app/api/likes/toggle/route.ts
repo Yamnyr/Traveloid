@@ -1,17 +1,16 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { getSessionUser } from "@/lib/session"
+import { sql } from "@/lib/db"
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    const session = await getSessionUser()
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
+
+    const userId = session.userId
 
     const { pinId } = await request.json()
 
@@ -19,31 +18,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Pin ID required" }, { status: 400 })
     }
 
-    // Check if already liked
-    const { data: existingLike } = await supabase
-      .from("pin_likes")
-      .select("id")
-      .eq("pin_id", pinId)
-      .eq("user_id", user.id)
-      .single()
+    // 1. Check if already liked using Neon
+    const existingLikes = await sql`
+      SELECT id FROM public.pin_likes 
+      WHERE pin_id = ${pinId} AND user_id = ${userId}
+    `
 
-    if (existingLike) {
+    if (existingLikes && existingLikes.length > 0) {
       // Unlike
-      const { error } = await supabase.from("pin_likes").delete().eq("pin_id", pinId).eq("user_id", user.id)
-
-      if (error) throw error
-
+      await sql`
+        DELETE FROM public.pin_likes 
+        WHERE pin_id = ${pinId} AND user_id = ${userId}
+      `
       return NextResponse.json({ liked: false })
     } else {
       // Like
-      const { error } = await supabase.from("pin_likes").insert({ pin_id: pinId, user_id: user.id })
-
-      if (error) throw error
-
+      await sql`
+        INSERT INTO public.pin_likes (pin_id, user_id) 
+        VALUES (${pinId}, ${userId})
+        ON CONFLICT (user_id, pin_id) DO NOTHING
+      `
       return NextResponse.json({ liked: true })
     }
   } catch (error) {
-    console.error("Error toggling like:", error)
+    console.error("Error toggling like in Neon:", error)
     return NextResponse.json({ error: "Failed to toggle like" }, { status: 500 })
   }
 }

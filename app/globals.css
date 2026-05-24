@@ -4,97 +4,97 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Updated to custom color palette: #D8C3A5, #F2EFEA, #456E85, #C17F59 */
-  --background: #f2efea;
-  --foreground: #2c1810;
+  /* Premium Warm/Adventurous Travel Light Mode Palette */
+  --background: #fbf9f6;
+  --foreground: #0f172a;
 
   --card: #ffffff;
-  --card-foreground: #2c1810;
+  --card-foreground: #0f172a;
 
   --popover: #ffffff;
-  --popover-foreground: #2c1810;
+  --popover-foreground: #0f172a;
 
-  --primary: #456e85;
-  --primary-foreground: #f2efea;
+  --primary: #1e3a8a; /* Deep Voyage Blue */
+  --primary-foreground: #f8fafc;
 
-  --secondary: #d8c3a5;
-  --secondary-foreground: #2c1810;
+  --secondary: #f3efe6; /* Clean Sand */
+  --secondary-foreground: #1e293b;
 
-  --muted: #f2efea;
-  --muted-foreground: #78716c;
+  --muted: #f8fafc;
+  --muted-foreground: #64748b;
 
-  --accent: #c17f59;
-  --accent-foreground: #f2efea;
+  --accent: #ca8a04; /* Sunlit Gold */
+  --accent-foreground: #ffffff;
 
-  --destructive: #dc2626;
+  --destructive: #ef4444;
   --destructive-foreground: #ffffff;
 
-  --border: #d8c3a5;
-  --input: #d8c3a5;
-  --ring: #456e85;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #3b82f6;
 
-  --radius: 0.5rem;
+  --radius: 1rem; /* More playful, rounded corners */
 
-  --chart-1: #456e85;
-  --chart-2: #c17f59;
-  --chart-3: #d8c3a5;
-  --chart-4: #f2efea;
-  --chart-5: #2c1810;
+  --chart-1: #1e3a8a;
+  --chart-2: #ca8a04;
+  --chart-3: #10b981;
+  --chart-4: #6366f1;
+  --chart-5: #f43f5e;
 
-  --sidebar: #f2efea;
-  --sidebar-foreground: #2c1810;
-  --sidebar-primary: #456e85;
-  --sidebar-primary-foreground: #f2efea;
-  --sidebar-accent: #d8c3a5;
-  --sidebar-accent-foreground: #2c1810;
-  --sidebar-border: #d8c3a5;
-  --sidebar-ring: #456e85;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0f172a;
+  --sidebar-primary: #1e3a8a;
+  --sidebar-primary-foreground: #f8fafc;
+  --sidebar-accent: #f3efe6;
+  --sidebar-accent-foreground: #1e293b;
+  --sidebar-border: #e2e8f0;
+  --sidebar-ring: #3b82f6;
 }
 
 .dark {
-  /* Updated dark mode colors to complement custom palette */
-  --background: #1c1917;
-  --foreground: #f2efea;
+  /* Cyber Nomad Deep Midnight Dark Mode Palette */
+  --background: #090d16;
+  --foreground: #f8fafc;
 
-  --card: #292524;
-  --card-foreground: #f2efea;
+  --card: #0f172a;
+  --card-foreground: #f8fafc;
 
-  --popover: #292524;
-  --popover-foreground: #f2efea;
+  --popover: #0f172a;
+  --popover-foreground: #f8fafc;
 
-  --primary: #456e85;
-  --primary-foreground: #f2efea;
+  --primary: #14b8a6; /* Glowing Lagoon Teal */
+  --primary-foreground: #090d16;
 
-  --secondary: #44403c;
-  --secondary-foreground: #f2efea;
+  --secondary: #1e293b;
+  --secondary-foreground: #f8fafc;
 
-  --muted: #44403c;
-  --muted-foreground: #a8a29e;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
 
-  --accent: #c17f59;
-  --accent-foreground: #f2efea;
+  --accent: #f97316; /* Sun-fire Orange */
+  --accent-foreground: #ffffff;
 
-  --destructive: #ef4444;
-  --destructive-foreground: #f2efea;
+  --destructive: #f87171;
+  --destructive-foreground: #0f172a;
 
-  --border: #44403c;
-  --input: #44403c;
-  --ring: #456e85;
+  --border: #1e293b;
+  --input: #1e293b;
+  --ring: #14b8a6;
 
-  --chart-1: #456e85;
-  --chart-2: #c17f59;
-  --chart-3: #d8c3a5;
-  --chart-4: #f2efea;
-  --chart-5: #78716c;
+  --chart-1: #14b8a6;
+  --chart-2: #f97316;
+  --chart-3: #8b5cf6;
+  --chart-4: #3b82f6;
+  --chart-5: #ec4899;
 
-  --sidebar: #1c1917;
-  --sidebar-foreground: #f2efea;
-  --sidebar-primary: #456e85;
-  --sidebar-primary-foreground: #f2efea;
-  --sidebar-accent: #44403c;
-  --sidebar-accent-foreground: #f2efea;
-  --sidebar-border: #44403c;
-  --sidebar-ring: #456e85;
+  --sidebar: #0f172a;
+  --sidebar-foreground: #f8fafc;
+  --sidebar-primary: #14b8a6;
+  --sidebar-primary-foreground: #090d16;
+  --sidebar-accent: #1e293b;
+  --sidebar-accent-foreground: #f8fafc;
+  --sidebar-border: #1e293b;
+  --sidebar-ring: #14b8a6;
 }
 
 @theme inline {
@@ -124,10 +124,10 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 4px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 6px);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -140,11 +140,126 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border/70 outline-ring/50 transition-colors duration-200;
   }
   body {
     @apply bg-background text-foreground;
-    /* Added font feature settings */
     font-feature-settings: "rlig" 1, "calt" 1;
+    overflow-x: hidden;
   }
+}
+
+/* Glassmorphism Styles */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.dark .glass-panel {
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Floating Bottom Navigation for Mobile */
+.mobile-nav-bar {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.05);
+}
+
+.dark .mobile-nav-bar {
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* Glowing Elements */
+.glow-primary {
+  box-shadow: 0 0 20px rgba(30, 58, 138, 0.15);
+}
+
+.dark .glow-primary {
+  box-shadow: 0 0 20px rgba(20, 184, 166, 0.3);
+}
+
+/* Custom Polaroid Leaflet Markers Styles override */
+.custom-polaroid-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Floating Background Shifting Gradient */
+.animated-bg-gradient {
+  background: linear-gradient(135deg, #fef9c3 0%, #ffedd5 50%, #fce7f3 100%);
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
+}
+
+.dark .animated-bg-gradient {
+  background: linear-gradient(135deg, #090d16 0%, #1e1b4b 50%, #111827 100%);
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Heart pop animation */
+@keyframes heartPop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.4); }
+  50% { transform: scale(0.8); }
+  70% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.heart-pop-active {
+  animation: heartPop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
+/* Polaroid flip transitions */
+.polaroid-flip {
+  perspective: 1000px;
+}
+.polaroid-flip-inner {
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+}
+.polaroid-flip:hover .polaroid-flip-inner {
+  transform: rotateY(18deg) rotateX(8deg);
+}
+
+/* Hide standard Leaflet control borders/shadows for modern look */
+.leaflet-bar {
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+}
+
+.dark .leaflet-bar {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
+}
+
+.leaflet-bar a {
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+.leaflet-bar a:hover {
+  background-color: var(--secondary) !important;
+}
+
+.leaflet-container {
+  font-family: inherit !important;
 }

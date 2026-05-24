@@ -1,41 +1,70 @@
-import { createClient } from "@/lib/supabase/server"
+import { getSessionUser } from "@/lib/session"
 import { redirect } from "next/navigation"
 import MapWrapper from "@/components/map/map-wrapper"
-import { Button } from "@/components/ui/button"
-import { LogOut, User, ImageIcon } from "lucide-react"
+import { LogOut, User } from "lucide-react"
 import Link from "next/link"
+import { sql, getOrCreateProfile } from "@/lib/db"
 
 export default async function MapPage() {
-  const supabase = await createClient()
+  const session = await getSessionUser()
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
+  if (!session) {
     redirect("/auth/login")
   }
 
-  const { data: pins, error } = await supabase
-    .from("travel_pins")
-    .select(`
-      *,
-      pin_photos (*),
-      profiles (display_name),
-      pin_likes (user_id)
-    `)
-    .order("created_at", { ascending: false })
-
-  console.log("[v0] Fetched pins from database:", pins?.length || 0, "pins")
-  console.log("[v0] Query error:", error)
-  if (pins && pins.length > 0) {
-    console.log("[v0] Sample pin:", pins[0])
+  // Create a compatible user object for UI components expecting Supabase user format
+  const user = {
+    id: session.userId,
+    email: session.email,
+    user_metadata: {
+      display_name: session.displayName || session.email.split("@")[0]
+    }
   }
+
+  // Lazily sync the logged-in user's profile to the Neon database
+  const profileName = user.user_metadata.display_name
+  await getOrCreateProfile(user.id, user.email, profileName)
+
+  // Fetch all pins from Neon, including aggregate photos and likes in a single query
+  let pins: any[] = []
+  try {
+    pins = await sql`
+      SELECT 
+        tp.id,
+        tp.user_id,
+        tp.latitude,
+        tp.longitude,
+        tp.location_name,
+        tp.visit_date,
+        tp.notes,
+        tp.created_at,
+        p.display_name AS author_name,
+        COALESCE(
+          (SELECT json_agg(json_build_object('id', pp.id, 'photo_url', pp.photo_url, 'caption', pp.caption)) 
+           FROM public.pin_photos pp 
+           WHERE pp.pin_id = tp.id), 
+          '[]'::json
+        ) AS pin_photos,
+        COALESCE(
+          (SELECT json_agg(json_build_object('user_id', pl.user_id)) 
+           FROM public.pin_likes pl 
+           WHERE pl.pin_id = tp.id), 
+          '[]'::json
+        ) AS pin_likes
+      FROM public.travel_pins tp
+      LEFT JOIN public.profiles p ON p.id = tp.user_id
+      ORDER BY tp.created_at DESC
+    `
+  } catch (error) {
+    console.error("Error fetching pins from Neon:", error)
+  }
+
+  console.log("[v0] Fetched pins from Neon:", pins?.length || 0, "pins")
 
   // Process pins to add social metadata
   const processedPins = pins?.map((pin) => ({
     ...pin,
-    author_name: pin.profiles?.display_name || "Unknown Traveler",
+    author_name: pin.author_name || "Unknown Traveler",
     author_id: pin.user_id,
     is_mine: pin.user_id === user.id,
     likes_count: pin.pin_likes?.length || 0,
@@ -44,64 +73,11 @@ export default async function MapPage() {
 
   console.log("[v0] Processed pins:", processedPins?.length || 0)
 
-  // Fetch user profile
-  const { data: profile } = await supabase.from("profiles").select("display_name").eq("id", user.id).single()
-
   return (
-      <div className="flex min-h-screen flex-col">
-
-        {/* Bulle Profil (en haut à droite) */}
-        {/* Bulle Profil (en haut à droite) */}
-        <Link
-            href={`/profile/${user.id}`}
-            className="
-    absolute top-4 right-4 z-[1000]
-    flex items-center justify-center
-    w-14 h-14
-    rounded-full
-    bg-white/80 backdrop-blur
-    shadow-lg
-    border border-white/40
-    hover:scale-105 active:scale-95
-    transition
-  "
-        >
-          <User className="h-7 w-7 text-primary" />
-        </Link>
-
-        {/* Bulle Logout (en dessous du profil, espacée de 16px) */}
-        <form action="/auth/sign-out" method="post">
-          <button
-              className="
-      absolute top-[80px] right-4 z-[1000]   /* 80px = 56px + un petit espace */
-      flex items-center justify-center
-      w-14 h-14
-      rounded-full
-      bg-white/80 backdrop-blur
-      shadow-lg
-      border border-white/40
-      hover:scale-105 active:scale-95
-      transition
-    "
-          >
-            <LogOut className="h-6 w-6 text-primary" />
-          </button>
-        </form>
-
-
-
-
-        <main className="flex-1 relative">
-          <MapWrapper pins={processedPins || []} currentUser={user}/>
-
-          {/*<div className="absolute top-4 left-4 z-[1000] sm:hidden">*/}
-          {/*  <Button variant="secondary" size="icon" className="shadow-md" asChild>*/}
-          {/*    <Link href={`/profile/${user.id}`}>*/}
-          {/*      <ImageIcon className="h-5 w-5"/>*/}
-          {/*    </Link>*/}
-          {/*  </Button>*/}
-          {/*</div>*/}
-        </main>
-      </div>
+    <div className="flex h-screen w-screen overflow-hidden">
+      <main className="flex-1 relative h-full w-full">
+        <MapWrapper pins={processedPins || []} currentUser={user} />
+      </main>
+    </div>
   )
 }
