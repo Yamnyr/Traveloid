@@ -4,6 +4,7 @@ import { ArrowLeft, LogOut, User } from "lucide-react"
 import Link from "next/link"
 import { ProfileContent } from "@/components/profile/profile-content"
 import { sql, getOrCreateProfile } from "@/lib/db"
+import { Button } from "@/components/ui/button"
 
 export default async function ProfilePage({ params }: { params: Promise<{ userId: string }> }) {
   const session = await getSessionUser()
@@ -149,42 +150,32 @@ export default async function ProfilePage({ params }: { params: Promise<{ userId
 
   return (
     <div className="flex min-h-screen flex-col bg-background/50 selection:bg-primary/20">
-      {/* Back Button (left) */}
-      <Link
-        href="/map"
-        className="
-          absolute top-6 left-6 z-[1000]
-          flex items-center justify-center
-          w-12 h-12
-          rounded-xl
-          bg-card hover:bg-secondary/40
-          shadow-md
-          border border-border/80
-          hover:scale-105 active:scale-95
-          transition-all
-        "
-      >
-        <ArrowLeft className="h-5 w-5 text-primary" />
-      </Link>
-
-      {/* Logout button (right) */}
-      <form action="/auth/sign-out" method="post">
-        <button
-          className="
-            absolute top-6 right-6 z-[1000]
-            flex items-center justify-center
-            w-12 h-12
-            rounded-xl
-            bg-card hover:bg-secondary/40
-            shadow-md
-            border border-border/80
-            hover:scale-105 active:scale-95
-            transition-all
-          "
-        >
-          <LogOut className="h-5 w-5 text-primary" />
-        </button>
-      </form>
+      {/* Sticky Premium Header */}
+      <header className="sticky top-0 z-[100] w-full border-b border-border/20 bg-background/60 backdrop-blur-md">
+        <div className="container mx-auto flex h-16 max-w-5xl items-center justify-between px-4">
+          <Link
+            href="/map"
+            className="flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors group"
+          >
+            <ArrowLeft className="h-4 w-4 text-primary group-hover:-translate-x-0.5 transition-transform" />
+            <span>Back to Map</span>
+          </Link>
+          
+          <div className="flex items-center gap-3">
+            <form action="/auth/sign-out" method="post">
+              <Button
+                variant="ghost"
+                size="sm"
+                type="submit"
+                className="rounded-xl font-semibold text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive flex items-center gap-1.5 h-9 px-3"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                <span>Sign Out</span>
+              </Button>
+            </form>
+          </div>
+        </div>
+      </header>
 
       <main className="flex-1 container mx-auto py-16 px-4 max-w-5xl">
         <ProfileContent

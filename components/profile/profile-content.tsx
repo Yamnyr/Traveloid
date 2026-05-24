@@ -255,7 +255,7 @@ export function ProfileContent({
       <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
       {/* Profile Info Card Container */}
-      <div className="glass-panel rounded-3xl p-8 shadow-xl border border-border/40 relative overflow-hidden flex flex-col md:flex-row items-center gap-8 md:text-left text-center">
+      <div className="glass-panel rounded-3xl p-6 sm:p-8 shadow-xl border border-border/40 relative overflow-hidden flex flex-col md:flex-row items-center gap-6 sm:gap-8 md:text-left text-center">
         
         {/* Glow backdrop circles */}
         <div className="absolute top-[-50%] right-[-10%] w-[300px] h-[300px] rounded-full bg-blue-500/10 blur-[90px] pointer-events-none" />
@@ -267,7 +267,7 @@ export function ProfileContent({
         </div>
 
         {/* Profile Details */}
-        <div className="space-y-4 flex-1 min-w-0">
+        <div className="space-y-4 flex-1 min-w-0 w-full">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-foreground font-['Plus_Jakarta_Sans']">
               {profile.display_name || "Traveler"}
@@ -278,7 +278,7 @@ export function ProfileContent({
           </div>
 
           {/* Social followers counts & posts */}
-          <div className="flex items-center justify-center md:justify-start gap-8">
+          <div className="flex items-center justify-center md:justify-start gap-4 sm:gap-8 flex-wrap">
             <div className="space-y-0.5">
               <div className="text-2xl font-extrabold text-foreground tracking-tight font-['Plus_Jakarta_Sans']">
                 {mounted ? <CountUp value={pins.length} /> : pins.length}
@@ -305,7 +305,7 @@ export function ProfileContent({
           <Button 
             onClick={handleFollowToggle} 
             disabled={isLoading} 
-            className="md:self-center rounded-xl bg-primary text-primary-foreground font-bold hover:scale-105 active:scale-95 transition-all glow-primary px-6 h-11"
+            className="md:self-center rounded-xl bg-primary text-primary-foreground font-bold hover:scale-105 active:scale-95 transition-all glow-primary px-6 h-11 w-full md:w-auto"
           >
             {isFollowing ? "Unfollow" : "Follow Explorer"}
           </Button>
@@ -313,31 +313,31 @@ export function ProfileContent({
       </div>
 
       {/* Tabs Selector Navigation Bar */}
-      <div className="flex justify-center border-b border-border/40 pb-px">
-        <div className="flex bg-secondary/30 p-1.5 rounded-2xl border border-border/40 gap-1">
+      <div className="flex justify-center border-b border-border/40 pb-px w-full overflow-hidden">
+        <div className="flex bg-secondary/30 p-1 rounded-xl sm:rounded-2xl border border-border/40 gap-0.5 sm:gap-1 max-w-full overflow-x-auto no-scrollbar whitespace-nowrap">
           <Button
             variant="ghost"
             onClick={() => setActiveTab("memories")}
-            className={`rounded-xl px-5 py-2 font-bold text-sm h-10 transition-all ${activeTab === "memories" ? "bg-card text-foreground shadow-sm border border-border/20" : "text-muted-foreground hover:text-foreground"}`}
+            className={`rounded-lg sm:rounded-xl px-2.5 sm:px-5 py-1.5 sm:py-2 font-bold text-xs sm:text-sm h-9 sm:h-10 transition-all shrink-0 ${activeTab === "memories" ? "bg-card text-foreground shadow-sm border border-border/20" : "text-muted-foreground hover:text-foreground"}`}
           >
-            <Compass className="h-4.5 w-4.5 mr-1.5" />
-            My Memories ({pins.length})
+            <Compass className="h-4 w-4 sm:h-4.5 sm:w-4.5 mr-1 sm:mr-1.5" />
+            <span>Memories ({pins.length})</span>
           </Button>
           <Button
             variant="ghost"
             onClick={() => setActiveTab("likes")}
-            className={`rounded-xl px-5 py-2 font-bold text-sm h-10 transition-all ${activeTab === "likes" ? "bg-card text-foreground shadow-sm border border-border/20" : "text-muted-foreground hover:text-foreground"}`}
+            className={`rounded-lg sm:rounded-xl px-2.5 sm:px-5 py-1.5 sm:py-2 font-bold text-xs sm:text-sm h-9 sm:h-10 transition-all shrink-0 ${activeTab === "likes" ? "bg-card text-foreground shadow-sm border border-border/20" : "text-muted-foreground hover:text-foreground"}`}
           >
-            <Heart className="h-4.5 w-4.5 mr-1.5" />
-            Likes ({likedPins.length})
+            <Heart className="h-4 w-4 sm:h-4.5 sm:w-4.5 mr-1 sm:mr-1.5" />
+            <span>Likes ({likedPins.length})</span>
           </Button>
           <Button
             variant="ghost"
             onClick={() => setActiveTab("analytics")}
-            className={`rounded-xl px-5 py-2 font-bold text-sm h-10 transition-all ${activeTab === "analytics" ? "bg-card text-foreground shadow-sm border border-border/20" : "text-muted-foreground hover:text-foreground"}`}
+            className={`rounded-lg sm:rounded-xl px-2.5 sm:px-5 py-1.5 sm:py-2 font-bold text-xs sm:text-sm h-9 sm:h-10 transition-all shrink-0 ${activeTab === "analytics" ? "bg-card text-foreground shadow-sm border border-border/20" : "text-muted-foreground hover:text-foreground"}`}
           >
-            <BarChart3 className="h-4.5 w-4.5 mr-1.5" />
-            Analytics
+            <BarChart3 className="h-4 w-4 sm:h-4.5 sm:w-4.5 mr-1 sm:mr-1.5" />
+            <span>Analytics</span>
           </Button>
         </div>
       </div>
