@@ -62,6 +62,14 @@ export async function getSessionUser(): Promise<UserSession | null> {
     if (!token) return null
     return await getSessionByToken(token)
   } catch (err) {
+    if (
+      err instanceof Error &&
+      ((err as any).digest === "DYNAMIC_SERVER_USAGE" ||
+        err.message.includes("Dynamic server usage") ||
+        err.message.includes("dynamic-server-error"))
+    ) {
+      throw err
+    }
     console.error("[session] Error reading cookies in getSessionUser:", err)
     return null
   }
