@@ -243,6 +243,9 @@ export default function TravelMap({
     })
   }, [])
 
+  // Cache generated polaroid divIcon instances to prevent image reloads on map moves/zooms
+  const polaroidIconCache = useRef<{ [key: string]: { icon: any; versionKey: string } }>({})
+
   const defaultIcon = useMemo(() => {
     if (!L) return null
     return L.icon({
@@ -266,6 +269,11 @@ export default function TravelMap({
       const isLiked = pin.is_liked
       const likesCount = pin.likes_count || 0
       
+      const versionKey = `${pin.id}_${likesCount}_${isLiked}_${photoUrl || ""}_${pin.location_name || ""}_${isMine}_${pin.author_name || ""}`
+      if (polaroidIconCache.current[pin.id] && polaroidIconCache.current[pin.id].versionKey === versionKey) {
+        return polaroidIconCache.current[pin.id].icon
+      }
+
       // Keep rotation consistent based on pin id hash
       const hash = pin.id.split("").reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0)
       const rotation = (hash % 8) - 4
@@ -317,13 +325,20 @@ export default function TravelMap({
             .polaroid-marker:hover .edit-button { display: flex !important; }
           </style>`
 
-      return L.divIcon({
+      const newIcon = L.divIcon({
         className: "custom-polaroid-marker",
         html: htmlContent,
         iconSize: [100, 120],
         iconAnchor: [50, 60],
         popupAnchor: [0, -60],
       })
+
+      polaroidIconCache.current[pin.id] = {
+        icon: newIcon,
+        versionKey,
+      }
+
+      return newIcon
     }
   }, [L])
 
