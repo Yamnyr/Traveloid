@@ -601,10 +601,14 @@ export default function TravelMap({
 
         {/* Desktop Custom Overlay Control - Add Memory Info Alert */}
         {isAddingPin && (
-          <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[1000] glass-panel px-6 py-3 rounded-full border border-primary/30 flex items-center gap-3 shadow-lg glow-primary animate-in fade-in slide-in-from-top-3">
-            <div className="w-2.5 h-2.5 rounded-full bg-primary animate-ping" />
-            <span className="text-sm font-bold text-foreground">Click anywhere on the map to drop a pin</span>
-            <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full hover:bg-secondary" onClick={() => setIsAddingPin(false)}>
+          <div className="absolute top-4 sm:top-6 left-1/2 -translate-x-1/2 z-[1000] glass-panel px-4 sm:px-6 py-2.5 sm:py-3 w-[calc(100%-2rem)] sm:w-auto max-w-sm sm:max-w-none rounded-full border border-primary/30 flex items-center justify-between sm:justify-start gap-2.5 sm:gap-3 shadow-lg glow-primary animate-in fade-in slide-in-from-top-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-primary animate-ping shrink-0" />
+              <span className="text-xs sm:text-sm font-bold text-foreground truncate">
+                {isMobile ? "Tap anywhere to drop a pin" : "Click anywhere on the map to drop a pin"}
+              </span>
+            </div>
+            <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full hover:bg-secondary shrink-0" onClick={() => setIsAddingPin(false)}>
               <X className="h-4 w-4" />
             </Button>
           </div>
