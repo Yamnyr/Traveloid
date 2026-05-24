@@ -26,7 +26,7 @@ const MOCK_MEMORIES = [
     id: "3",
     location: "Reykjavík, Iceland",
     date: "Dec 2024",
-    image: "https://images.unsplash.com/photo-1504829857797-ddff28127792?w=500&auto=format&fit=crop&q=60",
+    image: "https://images.unsplash.com/photo-1527004013197-933c4bb611b3?w=500&auto=format&fit=crop&q=60",
     rotation: -2,
     delay: 0.5,
   },
