@@ -1,12 +1,27 @@
 import { neon } from "@neondatabase/serverless"
 
-const databaseUrl = process.env.DATABASE_URL
-if (!databaseUrl) {
-  throw new Error("DATABASE_URL environment variable is missing. Please check your .env.local file.")
+let lazySql: any = null
+
+function getSql() {
+  if (!lazySql) {
+    const databaseUrl = process.env.DATABASE_URL
+    if (!databaseUrl) {
+      throw new Error("DATABASE_URL environment variable is missing. Please check your .env.local file.")
+    }
+    lazySql = neon(databaseUrl)
+  }
+  return lazySql
 }
 
-// Create the Neon SQL client
-export const sql = neon(databaseUrl)
+// Create a lazy Neon SQL client proxy to prevent import-time environment variable errors
+export const sql = new Proxy(() => {}, {
+  apply(target, thisArg, argumentsList) {
+    return Reflect.apply(getSql(), thisArg, argumentsList)
+  },
+  get(target, prop, receiver) {
+    return Reflect.get(getSql(), prop, receiver)
+  }
+}) as any
 
 /**
  * Lazily fetches or creates a user profile in the Neon database.
